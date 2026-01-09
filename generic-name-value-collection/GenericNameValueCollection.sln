@@ -4,12 +4,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FriendToNetWebDevelopers.Ge
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FriendToNetWebDevelopers.GenericNameValueCollection.Tests", "FriendToNetWebDevelopers.GenericNameValueCollection.Tests\FriendToNetWebDevelopers.GenericNameValueCollection.Tests.csproj", "{73C4C010-F5E8-41A3-B748-0231B934D3BA}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{914980E5-2264-4984-B242-F3533DA2954E}"
-	ProjectSection(SolutionItems) = preProject
-		LICENSE = LICENSE
-		README.md = README.md
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
