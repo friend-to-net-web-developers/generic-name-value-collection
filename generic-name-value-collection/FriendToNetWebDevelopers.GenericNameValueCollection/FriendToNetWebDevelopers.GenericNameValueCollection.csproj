@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>1.0.0</Version>
+        <Title>Generic Name-Value Collection</Title>
+        <Authors>Christopher Goehrs via FriendToNetWebDevelopers</Authors>
+        <Description>A generic implementation of NameValueCollection</Description>
+        <Copyright>2026</Copyright>
+        <RepositoryUrl>https://github.com/friend-to-net-web-developers/generic-name-value-collection</RepositoryUrl>
+        <RepositoryType>Git</RepositoryType>
+        <PackageTags>namevaluecollection,nullable dictionary</PackageTags>
+        <Company>FriendToNetWebDevelopers</Company>
+        <AssemblyVersion>1.0.0</AssemblyVersion>
+        <FileVersion>1.0.0</FileVersion>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageIcon>icon.png</PackageIcon>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <ImplicitUsings>disable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\LICENSE">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
+        <None Include="icon.png" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\README.md" Pack="true" PackagePath="\">
+            <Link>README.md</Link>
+        </Content>
+    </ItemGroup>
+    
+</Project>
