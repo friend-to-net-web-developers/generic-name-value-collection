@@ -1,5 +1,7 @@
 # Generic Name-Value Collection
 
+[![Unit Tests](https://github.com/friend-to-net-web-developers/generic-name-value-collection/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/friend-to-net-web-developers/generic-name-value-collection/actions/workflows/unit-tests.yml)
+
 A generic implementation of `NameValueCollection` for .NET Standard 2.1+. This library provides a type-safe, strongly-typed alternative to the classic `NameValueCollection` class, allowing you to store multiple values per key with any type you specify.
 
 ## Features
