@@ -323,10 +323,4 @@ public class GenericNameValueCollectionTests
         Assert.That(collection["key1"], Is.EqualTo(new[] { "a", "b" }));
         Assert.That(collection["key2"], Is.Null);
     }
-
-    private class TestObject
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-    }
 }
