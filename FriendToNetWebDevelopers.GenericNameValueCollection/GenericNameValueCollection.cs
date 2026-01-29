@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.Serialization;
+// ReSharper disable RedundantExtendsListEntry
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable ClassWithVirtualMembersNeverInherited.Global
 
 namespace FriendToNetWebDevelopers.GenericNameValueCollection
 {
