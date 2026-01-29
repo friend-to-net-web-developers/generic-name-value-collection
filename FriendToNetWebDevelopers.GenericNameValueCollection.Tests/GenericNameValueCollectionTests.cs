@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Specialized;
-
 namespace FriendToNetWebDevelopers.GenericNameValueCollection.Tests;
 
 public class GenericNameValueCollectionTests
@@ -267,7 +264,7 @@ public class GenericNameValueCollectionTests
 
         Assert.That(collection.HasKeys(), Is.True);
     }
-    
+
 
     [Test]
     public void CopyTo_NullArray_ThrowsArgumentNullException()
