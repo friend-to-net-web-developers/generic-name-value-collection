@@ -10,10 +10,10 @@ public class DisableCommand : Command
         var extensionsArgument = new Argument<string[]>("extensions") { Description = "The name(s) of the extension(s) to disable (e.g., openssl curl)" };
         Add(extensionsArgument);
 
-        var allOption = new Option<bool>("--all", "Disable for all installed versions");
+        var allOption = new Option<bool>("--all") { Description = "Disable for all installed versions" };
         Add(allOption);
 
-        var versionOption = new Option<string>("--version", "Disable for a specific version");
+        var versionOption = new Option<string>("--version") { Description = "Disable for a specific version" };
         Add(versionOption);
 
         this.SetAction(parseResult =>

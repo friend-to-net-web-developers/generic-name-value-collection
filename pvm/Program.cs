@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using pvm.Commands;
+using pvm.Helper;
 
 var rootCommand = new RootCommand("pvm - PHP Version Manager")
 {
@@ -11,5 +12,10 @@ var rootCommand = new RootCommand("pvm - PHP Version Manager")
     new DisableCommand(),
     new CurrentCommand()
 };
+
+if (args.Length == 0)
+{
+    return await InteractiveMenu.RunAsync(rootCommand);
+}
 
 return await rootCommand.Parse(args).InvokeAsync();

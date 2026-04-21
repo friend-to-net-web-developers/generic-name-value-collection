@@ -10,10 +10,10 @@ public class EnableCommand : Command
         var extensionsArgument = new Argument<string[]>("extensions") { Description = "The name(s) of the extension(s) to enable (e.g., openssl curl)" };
         Add(extensionsArgument);
 
-        var allOption = new Option<bool>("--all", "Enable for all installed versions");
+        var allOption = new Option<bool>("--all") { Description = "Enable for all installed versions" };
         Add(allOption);
 
-        var versionOption = new Option<string>("--version", "Enable for a specific version");
+        var versionOption = new Option<string>("--version") { Description = "Enable for a specific version" };
         Add(versionOption);
 
         this.SetAction(parseResult =>
