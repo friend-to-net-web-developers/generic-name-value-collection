@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>pvm</id>
+    <version>1.0.0</version>
+    <title>PHP Version Manager (pvm)</title>
+    <authors>generic-name-value-collection</authors>
+    <projectUrl>https://github.com/generic-name-value-collection/pvm</projectUrl>
+    <tags>php version-manager pvm development</tags>
+    <summary>A simple PHP Version Manager for Windows.</summary>
+    <description>pvm is a simple command-line tool to manage multiple PHP versions on Windows. It allows you to switch between different PHP versions easily by managing a symbolic link (junction) to the active PHP installation.</description>
+    <releaseNotes>Initial release as a Chocolatey package.</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+    <file src="..\bin\Release\net10.0\win-x64\publish\pvm.exe" target="tools" />
+  </files>
+</package>
