@@ -16,9 +16,14 @@ public class CommandInitializationTests
     [InlineData("laravel")]
     [InlineData("wordpress")]
     [InlineData("drupal")]
+    [InlineData("joomla")]
+    [InlineData("magento")]
     [InlineData("twig")]
     [InlineData("composer")]
     [InlineData("symfony")]
+    [InlineData("codeigniter")]
+    [InlineData("cakephp")]
+    [InlineData("slim")]
     public void EnableCommand_HasPresetOptions(string preset)
     {
         var command = new EnableCommand();

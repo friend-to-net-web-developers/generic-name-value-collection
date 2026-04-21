@@ -23,7 +23,12 @@ public class EnableCommand : Command
         var presetOptions = new Dictionary<string, Option<bool>>(StringComparer.OrdinalIgnoreCase);
         foreach (var preset in PhpIniHelper.ExtensionPresets)
         {
-            var description = $"Enable all extensions necessary for {preset.Key}";
+            var displayName = char.ToUpper(preset.Key[0]) + preset.Key[1..];
+            if (preset.Key.Equals("wordpress", StringComparison.OrdinalIgnoreCase)) displayName = "WordPress";
+            if (preset.Key.Equals("codeigniter", StringComparison.OrdinalIgnoreCase)) displayName = "CodeIgniter";
+            if (preset.Key.Equals("cakephp", StringComparison.OrdinalIgnoreCase)) displayName = "CakePHP";
+            
+            var description = $"Enable all extensions necessary for {displayName}";
             if (preset.Key == "laravel") description = "Enable all extensions necessary for Laravel/Composer";
             
             var option = new Option<bool>($"--{preset.Key.ToLower()}") { Description = description };

@@ -9,9 +9,14 @@ public static class PhpIniHelper
         { "laravel", new[] { "curl", "fileinfo", "mbstring", "openssl", "pdo_mysql", "tokenizer", "xml", "zip" } },
         { "wordpress", new[] { "curl", "dom", "exif", "fileinfo", "gd", "imagick", "intl", "mbstring", "mysqli", "openssl", "pdo_mysql", "xml", "zip" } },
         { "drupal", new[] { "curl", "dom", "fileinfo", "gd", "intl", "mbstring", "openssl", "pdo", "pdo_mysql", "tokenizer", "xml", "zip" } },
+        { "joomla", new[] { "curl", "dom", "gd", "intl", "mbstring", "mysqli", "openssl", "xml", "zip" } },
+        { "magento", new[] { "bcmath", "ctype", "curl", "dom", "fileinfo", "gd", "intl", "mbstring", "mysqli", "openssl", "pdo_mysql", "soap", "sockets", "sodium", "xsl", "zip" } },
         { "twig", new[] { "ctype", "iconv", "mbstring" } },
         { "composer", new[] { "curl", "openssl", "zip", "zlib" } },
-        { "symfony", new[] { "curl", "ctype", "iconv", "intl", "mbstring", "openssl", "pdo_mysql", "tokenizer", "xml", "zip" } }
+        { "symfony", new[] { "curl", "ctype", "iconv", "intl", "mbstring", "openssl", "pdo_mysql", "tokenizer", "xml", "zip" } },
+        { "codeigniter", new[] { "curl", "intl", "mbstring", "mysqli", "xml" } },
+        { "cakephp", new[] { "intl", "mbstring", "pdo_mysql", "simplexml" } },
+        { "slim", new[] { "mbstring" } }
     };
 
     public static string[] DefaultExtensions => ExtensionPresets["laravel"];

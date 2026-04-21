@@ -19,7 +19,11 @@ public class ListCommand : Command
                 Console.WriteLine("Available framework presets (for use with 'pvm enable'):");
                 foreach (var preset in PhpIniHelper.ExtensionPresets)
                 {
-                    Console.WriteLine($"  --{preset.Key.ToLower().PadRight(10)} : {string.Join(", ", preset.Value)}");
+                    Console.Write("  ");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.Write($"--{preset.Key.ToLower().PadRight(12)}");
+                    Console.ResetColor();
+                    Console.WriteLine($" : {string.Join(", ", preset.Value)}");
                 }
                 return;
             }
@@ -37,6 +41,9 @@ public class ListCommand : Command
                 var verLabel = reported != null ? $" ({reported})" : " (php.exe not found)";
                 Console.WriteLine($"  {dotted}{verLabel}{marker}");
             }
+
+            Console.WriteLine();
+            Console.WriteLine("Use 'pvm list --presets' to see available framework presets.");
         });
     }
 }
