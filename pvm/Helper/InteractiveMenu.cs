@@ -26,6 +26,7 @@ public static class InteractiveMenu
                         "Switch active version",
                         "Show current version",
                         "Enable extension",
+                        "Apply framework preset",
                         "Disable extension",
                         "Install new version",
                         "Update version",
@@ -64,6 +65,9 @@ public static class InteractiveMenu
                 break;
             case "Enable extension":
                 await EnableExtension(rootCommand);
+                break;
+            case "Apply framework preset":
+                await ApplyPreset(rootCommand);
                 break;
             case "Disable extension":
                 await DisableExtension(rootCommand);
@@ -141,6 +145,23 @@ public static class InteractiveMenu
             args.AddRange(selected);
             await rootCommand.Parse(args.ToArray()).InvokeAsync();
         }
+    }
+
+    private static async Task ApplyPreset(RootCommand rootCommand)
+    {
+        var detection = PhpVersionHelper.GetDetectedVersionInfo();
+        if (detection == null)
+        {
+            AnsiConsole.MarkupLine("[red]No active PHP version found.[/]");
+            return;
+        }
+
+        var selected = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Select a [green]framework preset[/] to apply:")
+                .AddChoices(PhpIniHelper.ExtensionPresets.Keys.Select(k => k.ToLower())));
+
+        await rootCommand.Parse(["enable", "--" + selected]).InvokeAsync();
     }
 
     private static async Task DisableExtension(RootCommand rootCommand)

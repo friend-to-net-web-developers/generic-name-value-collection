@@ -4,17 +4,17 @@ namespace pvm.Helper;
 
 public static class PhpIniHelper
 {
-    public static readonly string[] DefaultExtensions =
+    public static readonly Dictionary<string, string[]> ExtensionPresets = new(StringComparer.OrdinalIgnoreCase)
     {
-        "curl",
-        "fileinfo",
-        "mbstring",
-        "openssl",
-        "pdo_mysql",
-        "tokenizer",
-        "xml",
-        "zip"
+        { "laravel", new[] { "curl", "fileinfo", "mbstring", "openssl", "pdo_mysql", "tokenizer", "xml", "zip" } },
+        { "wordpress", new[] { "curl", "dom", "exif", "fileinfo", "gd", "imagick", "intl", "mbstring", "mysqli", "openssl", "pdo_mysql", "xml", "zip" } },
+        { "drupal", new[] { "curl", "dom", "fileinfo", "gd", "intl", "mbstring", "openssl", "pdo", "pdo_mysql", "tokenizer", "xml", "zip" } },
+        { "twig", new[] { "ctype", "iconv", "mbstring" } },
+        { "composer", new[] { "curl", "openssl", "zip", "zlib" } },
+        { "symfony", new[] { "curl", "ctype", "iconv", "intl", "mbstring", "openssl", "pdo_mysql", "tokenizer", "xml", "zip" } }
     };
+
+    public static string[] DefaultExtensions => ExtensionPresets["laravel"];
 
     public static string? GetPhpIniPath(string phpDirectory)
     {

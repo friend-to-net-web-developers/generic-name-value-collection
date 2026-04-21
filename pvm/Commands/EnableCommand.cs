@@ -20,26 +20,39 @@ public class EnableCommand : Command
         var versionOption = new Option<string>("--version") { Description = "Enable for a specific version" };
         Add(versionOption);
 
-        var laravelOption = new Option<bool>("--laravel") { Description = "Enable all extensions necessary for Laravel/Composer" };
-        Add(laravelOption);
+        var presetOptions = new Dictionary<string, Option<bool>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var preset in PhpIniHelper.ExtensionPresets)
+        {
+            var description = $"Enable all extensions necessary for {preset.Key}";
+            if (preset.Key == "laravel") description = "Enable all extensions necessary for Laravel/Composer";
+            
+            var option = new Option<bool>($"--{preset.Key.ToLower()}") { Description = description };
+            presetOptions[preset.Key] = option;
+            Add(option);
+        }
 
         this.SetAction(parseResult =>
         {
             var extensions = parseResult.GetValue(extensionsArgument) ?? Array.Empty<string>();
-            var laravel = parseResult.GetValue(laravelOption);
-
-            if (extensions.Length == 0 && !laravel)
+            
+            var extensionList = extensions.ToList();
+            bool anyPreset = false;
+            foreach (var preset in presetOptions)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("Error: Specify at least one extension or use --laravel");
-                Console.ResetColor();
-                return;
+                if (parseResult.GetValue(preset.Value))
+                {
+                    extensionList.AddRange(PhpIniHelper.ExtensionPresets[preset.Key]);
+                    anyPreset = true;
+                }
             }
 
-            var extensionList = extensions.ToList();
-            if (laravel)
+            if (extensions.Length == 0 && !anyPreset)
             {
-                extensionList.AddRange(PhpIniHelper.DefaultExtensions);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error: Specify at least one extension or use a framework preset (e.g., --laravel).");
+                Console.WriteLine("Use 'pvm list --presets' to see available presets.");
+                Console.ResetColor();
+                return;
             }
 
             extensionList = extensionList.Distinct(StringComparer.OrdinalIgnoreCase).ToList();

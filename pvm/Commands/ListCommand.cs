@@ -8,8 +8,22 @@ public class ListCommand : Command
 {
     public ListCommand() : base("list", "List installed versions")
     {
-        this.SetAction(context =>
+        var presetsOption = new Option<bool>("--presets") { Description = "List available framework presets" };
+        Add(presetsOption);
+
+        this.SetAction(parseResult =>
         {
+            var showPresets = parseResult.GetValue(presetsOption);
+            if (showPresets)
+            {
+                Console.WriteLine("Available framework presets (for use with 'pvm enable'):");
+                foreach (var preset in PhpIniHelper.ExtensionPresets)
+                {
+                    Console.WriteLine($"  --{preset.Key.ToLower().PadRight(10)} : {string.Join(", ", preset.Value)}");
+                }
+                return;
+            }
+
             var phpRoot = PhpVersionHelper.GetPhpRoot();
             var activeSlug = PhpVersionHelper.GetCurrentActiveSlug();
             var installedSlugs = PhpVersionHelper.GetInstalledSlugs();

@@ -12,11 +12,24 @@ public class CommandInitializationTests
         Assert.NotNull(command);
     }
 
-    [Fact]
-    public void EnableCommand_HasLaravelOption()
+    [Theory]
+    [InlineData("laravel")]
+    [InlineData("wordpress")]
+    [InlineData("drupal")]
+    [InlineData("twig")]
+    [InlineData("composer")]
+    [InlineData("symfony")]
+    public void EnableCommand_HasPresetOptions(string preset)
     {
         var command = new EnableCommand();
-        Assert.Contains(command.Options, o => o.Name == "laravel" || o.Name == "--laravel");
+        Assert.Contains(command.Options, o => o.Name == "--" + preset);
+    }
+
+    [Fact]
+    public void ListCommand_HasPresetsOption()
+    {
+        var command = new ListCommand();
+        Assert.Contains(command.Options, o => o.Name == "--presets");
     }
 
     [Fact]
