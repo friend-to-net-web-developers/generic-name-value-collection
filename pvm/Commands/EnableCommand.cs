@@ -127,11 +127,21 @@ public class EnableCommand : Command
                 
                 try 
                 {
+                    var disabled = PhpIniHelper.CleanupExtensions(target);
+                    if (disabled.Count > 0)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine($"Info: Disabled redundant or missing extensions for PHP {versionDisplay}: {string.Join(", ", disabled)}");
+                        Console.ResetColor();
+                    }
+
                     var availableExtensions = PhpIniHelper.GetAvailableExtensions(target);
 
                     foreach (var extension in extensionList)
                     {
-                        if (availableExtensions.Count > 0 && !availableExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+                        bool isAvailable = availableExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase);
+                        
+                        if (!isAvailable)
                         {
                             Console.ForegroundColor = ConsoleColor.Yellow;
                             Console.Write($"Warning: Extension '{extension}' not found for PHP {versionDisplay}. ");
@@ -144,8 +154,18 @@ public class EnableCommand : Command
                             else
                             {
                                 Console.WriteLine();
+                                if (extension.Equals("imagick", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    Console.WriteLine("  'imagick' is a PECL extension and usually needs to be downloaded separately.");
+                                    Console.WriteLine("  Download it from: https://pecl.php.net/package/imagick");
+                                }
+                                else
+                                {
+                                    Console.WriteLine("  This extension might need to be downloaded from PECL or another source.");
+                                }
                             }
                             Console.ResetColor();
+                            continue; // Skip enabling if not found
                         }
 
                         if (PhpIniHelper.EnableExtension(target, extension))

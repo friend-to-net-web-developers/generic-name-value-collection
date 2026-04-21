@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace pvm.Helper;
@@ -268,27 +269,25 @@ public static partial class PhpVersionHelper
             if (process == null) return new List<string>();
 
             var modules = new List<string>();
-            bool inModules = false;
             while (!process.StandardOutput.EndOfStream)
             {
                 var line = process.StandardOutput.ReadLine()?.Trim();
                 if (string.IsNullOrEmpty(line)) continue;
 
-                if (line.Equals("[PHP Modules]", StringComparison.OrdinalIgnoreCase))
+                // Skip headers and warnings
+                if (line.StartsWith('[') && line.EndsWith(']'))
                 {
-                    inModules = true;
                     continue;
                 }
-                if (line.Equals("[Zend Modules]", StringComparison.OrdinalIgnoreCase))
+                
+                if (line.Contains("PHP Warning:", StringComparison.OrdinalIgnoreCase) || 
+                    line.Contains("PHP Notice:", StringComparison.OrdinalIgnoreCase) ||
+                    line.Contains("PHP Fatal error:", StringComparison.OrdinalIgnoreCase))
                 {
-                    inModules = false;
                     continue;
                 }
 
-                if (inModules)
-                {
-                    modules.Add(line);
-                }
+                modules.Add(line);
             }
             process.WaitForExit(5000);
             return modules;
@@ -301,4 +300,96 @@ public static partial class PhpVersionHelper
 
     [GeneratedRegex(@"PHP (\d+\.\d+\.\d+)")]
     private static partial Regex SemanticVersionRegex();
+
+    /// <summary>
+    /// Checks if the specified extensions are loaded using PHP's extension_loaded() function.
+    /// This is more accurate for framework requirements as it verifies the engine actually
+    /// recognizes and has initialized the extension.
+    /// </summary>
+    public static Dictionary<string, string> CheckExtensionsViaPhp(string phpDirectory, IEnumerable<string> extensions)
+    {
+        var exePath = Path.Combine(phpDirectory, "php.exe");
+        var extList = extensions.ToList();
+        
+        if (!File.Exists(exePath) || extList.Count == 0)
+        {
+            return extList.ToDictionary(e => e, _ => "0");
+        }
+
+        try
+        {
+            // We use a small script to check each extension. 
+            // We pass them as a comma-separated string to avoid command line length issues with many extensions.
+            var extListForScript = extList.Select(e => e.Replace("'", "\\'")).ToList();
+            var extString = string.Join(",", extListForScript);
+            
+            // PHP script: 
+            // $a=explode(',', $argv[1]); $r=[]; foreach($a as $e) $r[$e]=extension_loaded($e)?'1':'0'; 
+            // $r['__ext_dir']=ini_get('extension_dir'); echo 'JSON:'.json_encode($r);
+            // We use a prefix 'JSON:' to easily find the result even if there are warnings.
+            var script = "$a=explode(',', $argv[1]); $r=[]; foreach($a as $e) $r[$e]=extension_loaded($e)?'1':'0'; $r['__ext_dir']=ini_get('extension_dir'); echo 'JSON:'.json_encode($r);";
+            
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = exePath,
+                // We add -d display_errors=off to avoid polluting the output with warnings.
+                // We also set PHPRC to the directory of php.exe to ensure it picks up the correct php.ini.
+                Arguments = $"-d display_errors=off -d display_startup_errors=off -r \"{script}\" -- \"{extString}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                Environment = { ["PHPRC"] = phpDirectory }
+            });
+
+            if (process == null) return extList.ToDictionary(e => e, _ => "0");
+
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
+            
+            if (!process.WaitForExit(5000))
+            {
+                process.Kill();
+                return extList.ToDictionary(e => e, _ => "0");
+            }
+
+            var output = outputTask.Result;
+            var error = errorTask.Result;
+
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                // If output is empty, it might be a fatal error during startup.
+                // We can't do much but return failure for all.
+                return extList.ToDictionary(e => e, _ => "0");
+            }
+
+            // Try to find the JSON part in the output. It should start after 'JSON:'.
+            var jsonPrefix = "JSON:";
+            var index = output.IndexOf(jsonPrefix);
+            if (index != -1)
+            {
+                output = output.Substring(index + jsonPrefix.Length);
+            }
+            else
+            {
+                // Fallback to searching for braces if prefix is missing
+                var firstBrace = output.IndexOf('{');
+                var lastBrace = output.LastIndexOf('}');
+                if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace)
+                {
+                    output = output.Substring(firstBrace, lastBrace - firstBrace + 1);
+                }
+                else
+                {
+                    return extList.ToDictionary(e => e, _ => "0");
+                }
+            }
+
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(output) ?? extList.ToDictionary(e => e, _ => "0");
+        }
+        catch
+        {
+            return extList.ToDictionary(e => e, _ => "0");
+        }
+    }
 }

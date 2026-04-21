@@ -122,11 +122,24 @@ public class CheckCommand : Command
             {
                 var slug = Path.GetFileName(target).Replace("php", "");
                 var versionDisplay = PhpVersionHelper.ToDotted(slug);
-                var loadedModules = PhpVersionHelper.GetLoadedModules(target);
                 
-                foreach (var ext in extensionList)
+                // Use the more accurate PHP-based check.
+                // This verifies that the extension is not only configured but successfully initialized by the engine.
+                var checkResults = PhpVersionHelper.CheckExtensionsViaPhp(target, extensionList);
+                
+                if (checkResults.Count == 0 && extensionList.Count > 0)
                 {
-                    bool isLoaded = loadedModules.Contains(ext, StringComparer.OrdinalIgnoreCase);
+                    AnsiConsole.MarkupLine($"[red][[ERROR]] Failed to run PHP check for version {versionDisplay}.[/]");
+                    allSucceeded = false;
+                    continue;
+                }
+
+                foreach (var entry in checkResults)
+                {
+                    var ext = entry.Key;
+                    if (ext == "__ext_dir") continue;
+                    
+                    bool isLoaded = entry.Value == "1";
                     
                     if (isLoaded)
                     {
@@ -136,6 +149,15 @@ public class CheckCommand : Command
                     {
                         AnsiConsole.MarkupLine($"[red][[FAIL]] {ext} is NOT enabled for PHP {versionDisplay}[/]");
                         allSucceeded = false;
+                    }
+                }
+
+                if (!allSucceeded && checkResults.TryGetValue("__ext_dir", out var extDir))
+                {
+                    // If everything failed, check if extension_dir is suspiciously empty or default
+                    if (string.IsNullOrEmpty(extDir) || extDir == "C:\\php" || extDir == ".")
+                    {
+                        AnsiConsole.MarkupLine($"[yellow]Tip: extension_dir is set to '{extDir}'. pvm has updated your php.ini to use 'extension_dir = \"ext\"', but if issues persist, verify that the 'ext' folder exists and contains the necessary DLLs.[/]");
                     }
                 }
             }

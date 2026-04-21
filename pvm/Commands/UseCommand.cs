@@ -30,6 +30,13 @@ public class UseCommand : Command
             try
             {
                 JunctionHelper.SetActive(phpRoot, target);
+                var disabled = PhpIniHelper.CleanupExtensions(target);
+                if (disabled.Count > 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"Notice: Disabled redundant or missing extensions: {string.Join(", ", disabled)}");
+                    Console.ResetColor();
+                }
             }
             catch (Exception ex)
             {
