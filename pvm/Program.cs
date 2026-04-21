@@ -10,6 +10,7 @@ var rootCommand = new RootCommand("pvm - PHP Version Manager")
     new UpdateCommand(),
     new EnableCommand(),
     new DisableCommand(),
+    new CheckCommand(),
     new CurrentCommand()
 };
 

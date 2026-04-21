@@ -43,4 +43,21 @@ public class CommandInitializationTests
         var command = new DisableCommand();
         Assert.NotNull(command);
     }
+
+    [Fact]
+    public void CheckCommand_CanBeInstantiated()
+    {
+        var command = new CheckCommand();
+        Assert.NotNull(command);
+    }
+
+    [Theory]
+    [InlineData("laravel")]
+    [InlineData("wordpress")]
+    [InlineData("drupal")]
+    public void CheckCommand_HasPresetOptions(string preset)
+    {
+        var command = new CheckCommand();
+        Assert.Contains(command.Options, o => o.Name == "--" + preset);
+    }
 }

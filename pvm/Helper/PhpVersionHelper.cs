@@ -234,6 +234,23 @@ public static partial class PhpVersionHelper
             return cached;
         }
 
+        var modules = GetModulesInternal(phpDirectory, "-n -m");
+        _builtInModulesCache[phpDirectory] = modules;
+        return modules;
+    }
+
+    /// <summary>
+    /// Retrieves the list of loaded PHP modules (including those from php.ini) by running 'php -m'.
+    /// </summary>
+    /// <param name="phpDirectory">The directory containing php.exe.</param>
+    /// <returns>A list of module names.</returns>
+    public static List<string> GetLoadedModules(string phpDirectory)
+    {
+        return GetModulesInternal(phpDirectory, "-m");
+    }
+
+    private static List<string> GetModulesInternal(string phpDirectory, string arguments)
+    {
         var exePath = Path.Combine(phpDirectory, "php.exe");
         if (!File.Exists(exePath)) return new List<string>();
 
@@ -242,7 +259,7 @@ public static partial class PhpVersionHelper
             using var process = Process.Start(new ProcessStartInfo
             {
                 FileName = exePath,
-                Arguments = "-n -m",
+                Arguments = arguments,
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
@@ -274,12 +291,10 @@ public static partial class PhpVersionHelper
                 }
             }
             process.WaitForExit(5000);
-            _builtInModulesCache[phpDirectory] = modules;
             return modules;
         }
         catch 
         {
-            _builtInModulesCache[phpDirectory] = new List<string>();
             return new List<string>(); 
         }
     }

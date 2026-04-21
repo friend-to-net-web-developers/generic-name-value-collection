@@ -27,6 +27,7 @@ public static class InteractiveMenu
                         "Show current version",
                         "Enable extension",
                         "Apply framework preset",
+                        "Check framework extensions",
                         "Disable extension",
                         "Install new version",
                         "Update version",
@@ -68,6 +69,9 @@ public static class InteractiveMenu
                 break;
             case "Apply framework preset":
                 await ApplyPreset(rootCommand);
+                break;
+            case "Check framework extensions":
+                await CheckExtensions(rootCommand);
                 break;
             case "Disable extension":
                 await DisableExtension(rootCommand);
@@ -162,6 +166,11 @@ public static class InteractiveMenu
                 .AddChoices(PhpIniHelper.ExtensionPresets.Keys.Select(k => k.ToLower())));
 
         await rootCommand.Parse(["enable", "--" + selected]).InvokeAsync();
+    }
+
+    private static async Task CheckExtensions(RootCommand rootCommand)
+    {
+        await rootCommand.Parse(["check"]).InvokeAsync();
     }
 
     private static async Task DisableExtension(RootCommand rootCommand)
