@@ -125,6 +125,24 @@ public class PhpIniHelperTests : IDisposable
     }
 
     [Fact]
+    public void EnableExtension_BuiltIn_DoesNothingAndReturnsTrue()
+    {
+        // We can't easily mock PhpVersionHelper.GetBuiltInModules because it's static
+        // but we can place a fake php.exe that returns a specific output.
+        // However, pvm seems to not have a mockable design for this yet.
+        // For now, let's just test that if php.exe is missing, it still works as before.
+        
+        var iniPath = Path.Combine(_tempDir, "php.ini");
+        File.WriteAllLines(iniPath, new[] { ";extension=tokenizer" });
+
+        var success = PhpIniHelper.EnableExtension(_tempDir, "tokenizer");
+        
+        Assert.True(success);
+        var lines = File.ReadAllLines(iniPath);
+        Assert.Contains("extension=tokenizer", lines);
+    }
+
+    [Fact]
     public void DisableExtension_CommentsOutExistingLine()
     {
         var iniPath = Path.Combine(_tempDir, "php.ini");

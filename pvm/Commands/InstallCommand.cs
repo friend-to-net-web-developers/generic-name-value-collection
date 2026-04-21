@@ -114,6 +114,20 @@ public class InstallCommand : Command
             {
                 Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"PHP {fullVersion} installed successfully at {installDir}");
+                
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("Enabling default extensions for Laravel/Composer...");
+                Console.ResetColor();
+
+                foreach (var extension in PhpIniHelper.DefaultExtensions)
+                {
+                    if (PhpIniHelper.EnableExtension(installDir, extension))
+                    {
+                        Console.WriteLine($"  Enabled {extension}");
+                    }
+                }
+
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"Run 'pvm use {PhpVersionHelper.ToDotted(slug)}' to activate it.");
                 Console.ResetColor();
             }

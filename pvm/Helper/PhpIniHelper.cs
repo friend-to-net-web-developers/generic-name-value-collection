@@ -4,6 +4,18 @@ namespace pvm.Helper;
 
 public static class PhpIniHelper
 {
+    public static readonly string[] DefaultExtensions =
+    {
+        "curl",
+        "fileinfo",
+        "mbstring",
+        "openssl",
+        "pdo_mysql",
+        "tokenizer",
+        "xml",
+        "zip"
+    };
+
     public static string? GetPhpIniPath(string phpDirectory)
     {
         var iniPath = Path.Combine(phpDirectory, "php.ini");
@@ -43,6 +55,13 @@ public static class PhpIniHelper
 
     public static bool EnableExtension(string phpDirectory, string extension)
     {
+        // If it's already a built-in module, we don't need to enable it in php.ini
+        var builtIn = PhpVersionHelper.GetBuiltInModules(phpDirectory);
+        if (builtIn.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         var iniPath = GetPhpIniPath(phpDirectory);
         if (iniPath == null)
         {
@@ -127,6 +146,12 @@ public static class PhpIniHelper
     public static List<string> GetAvailableExtensions(string phpDirectory)
     {
         var extensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Include built-in modules
+        foreach (var mod in PhpVersionHelper.GetBuiltInModules(phpDirectory))
+        {
+            extensions.Add(mod);
+        }
 
         // Check the 'ext' directory for .dll files (typical on Windows)
         var extDir = Path.Combine(phpDirectory, "ext");

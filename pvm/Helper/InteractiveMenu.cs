@@ -104,15 +104,21 @@ public static class InteractiveMenu
 
     private static async Task EnableExtension(RootCommand rootCommand)
     {
-        var activeSlug = PhpVersionHelper.GetCurrentActiveSlug();
-        if (activeSlug == null)
+        var detection = PhpVersionHelper.GetDetectedVersionInfo();
+        if (detection == null)
         {
-            AnsiConsole.MarkupLine("[red]No active PHP version set. Please switch to a version first.[/]");
+            AnsiConsole.MarkupLine("[red]No active PHP version found. Please use 'pvm use <version>' or ensure PHP is on your PATH.[/]");
             return;
         }
 
+        var sourceLabel = detection.Source == PhpVersionHelper.DetectionSource.ActiveJunction 
+            ? "active junction" 
+            : "PATH";
+        
+        AnsiConsole.MarkupLine($"[cyan]Notice: Using PHP {PhpVersionHelper.ToDotted(detection.Slug)} (detected from {sourceLabel}).[/]");
+
         var phpRoot = PhpVersionHelper.GetPhpRoot();
-        var target = Path.Combine(phpRoot, "php" + activeSlug);
+        var target = Path.Combine(phpRoot, "php" + detection.Slug);
         var available = PhpIniHelper.GetAvailableExtensions(target);
 
         if (available.Count == 0)
@@ -139,12 +145,18 @@ public static class InteractiveMenu
 
     private static async Task DisableExtension(RootCommand rootCommand)
     {
-        var activeSlug = PhpVersionHelper.GetCurrentActiveSlug();
-        if (activeSlug == null)
+        var detection = PhpVersionHelper.GetDetectedVersionInfo();
+        if (detection == null)
         {
-            AnsiConsole.MarkupLine("[red]No active PHP version set.[/]");
+            AnsiConsole.MarkupLine("[red]No active PHP version found.[/]");
             return;
         }
+
+        var sourceLabel = detection.Source == PhpVersionHelper.DetectionSource.ActiveJunction 
+            ? "active junction" 
+            : "PATH";
+        
+        AnsiConsole.MarkupLine($"[cyan]Notice: Using PHP {PhpVersionHelper.ToDotted(detection.Slug)} (detected from {sourceLabel}).[/]");
 
         var ext = AnsiConsole.Ask<string>("Enter [green]extension name[/] to disable:");
         await rootCommand.Parse(["disable", ext]).InvokeAsync();

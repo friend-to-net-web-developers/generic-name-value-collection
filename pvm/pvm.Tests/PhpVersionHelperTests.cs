@@ -79,4 +79,72 @@ public class PhpVersionHelperTests
             Environment.SetEnvironmentVariable("PVM_PHP_ROOT", null);
         }
     }
+
+    [Fact]
+    public void GetDetectedSlug_ReturnsActiveSlugWhenJunctionExists()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "pvm_tests_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var php85 = Path.Combine(tempDir, "php85");
+            Directory.CreateDirectory(php85);
+            
+            // Create a symbolic link/junction using JunctionHelper
+            JunctionHelper.SetActive(tempDir, php85);
+
+            Environment.SetEnvironmentVariable("PVM_PHP_ROOT", tempDir);
+            var info = PhpVersionHelper.GetDetectedVersionInfo();
+            Assert.NotNull(info);
+            Assert.Equal("85", info.Slug);
+            Assert.Equal(PhpVersionHelper.DetectionSource.ActiveJunction, info.Source);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PVM_PHP_ROOT", null);
+            if (Directory.Exists(tempDir))
+            {
+                var active = Path.Combine(tempDir, "active");
+                if (Directory.Exists(active)) Directory.Delete(active);
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public void GetDetectedSlug_ReturnsSlugFromPath_WhenNoJunctionExists()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "pvm_tests_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var php84 = Path.Combine(tempDir, "php84");
+            Directory.CreateDirectory(php84);
+            File.WriteAllText(Path.Combine(php84, "php.exe"), "");
+
+            Environment.SetEnvironmentVariable("PVM_PHP_ROOT", tempDir);
+            
+            var oldPath = Environment.GetEnvironmentVariable("PATH");
+            Environment.SetEnvironmentVariable("PATH", php84 + ";" + oldPath);
+            try 
+            {
+                var info = PhpVersionHelper.GetDetectedVersionInfo();
+                Assert.NotNull(info);
+                Assert.Equal("84", info.Slug);
+                Assert.Equal(PhpVersionHelper.DetectionSource.Path, info.Source);
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("PATH", oldPath);
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("PVM_PHP_ROOT", null);
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
 }

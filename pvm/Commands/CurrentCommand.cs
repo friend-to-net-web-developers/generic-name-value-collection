@@ -10,15 +10,19 @@ public class CurrentCommand : Command
     {
         this.SetAction(context =>
         {
-            var activeSlug = PhpVersionHelper.GetCurrentActiveSlug();
-            if (activeSlug != null)
+            var detection = PhpVersionHelper.GetDetectedVersionInfo();
+            if (detection != null)
             {
-                var dotted = PhpVersionHelper.ToDotted(activeSlug);
+                var dotted = PhpVersionHelper.ToDotted(detection.Slug);
                 var phpRoot = PhpVersionHelper.GetPhpRoot();
-                var exePath = Path.Combine(phpRoot, "php" + activeSlug, "php.exe");
+                var exePath = Path.Combine(phpRoot, "php" + detection.Slug, "php.exe");
                 var reported = PhpVersionHelper.GetVersionFromExe(exePath);
-                var verLabel = reported != null ? $" ({reported})" : " (php.exe not found)";
-                Console.WriteLine($"  {dotted}{verLabel}");
+                var verLabel = reported != null ? $" ({reported})" : "";
+                var sourceLabel = detection.Source == PhpVersionHelper.DetectionSource.ActiveJunction 
+                    ? "[active]" 
+                    : "[detected from PATH]";
+                
+                Console.WriteLine($"  {dotted}{verLabel} {sourceLabel}");
             }
             else
             {

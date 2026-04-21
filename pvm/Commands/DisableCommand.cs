@@ -58,16 +58,25 @@ public class DisableCommand : Command
             }
             else
             {
-                // Default to active
-                var activeSlug = PhpVersionHelper.GetCurrentActiveSlug();
-                if (activeSlug == null)
+                // Default to detected version (active junction or PATH)
+                var detection = PhpVersionHelper.GetDetectedVersionInfo();
+                if (detection == null)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
                     Console.WriteLine("Error: No active PHP version found. Use 'pvm use <version>' or specify --version or --all.");
                     Console.ResetColor();
                     return;
                 }
-                targets.Add(Path.Combine(phpRoot, "php" + activeSlug));
+
+                var sourceLabel = detection.Source == PhpVersionHelper.DetectionSource.ActiveJunction 
+                    ? "active junction" 
+                    : "PATH";
+                
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"Notice: No version specified. Using PHP {PhpVersionHelper.ToDotted(detection.Slug)} (detected from {sourceLabel}).");
+                Console.ResetColor();
+
+                targets.Add(Path.Combine(phpRoot, "php" + detection.Slug));
             }
 
             foreach (var target in targets)

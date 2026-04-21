@@ -89,6 +89,86 @@ public static partial class PhpVersionHelper
     }
 
     /// <summary>
+    /// Indicates the source of a detected PHP version.
+    /// </summary>
+    public enum DetectionSource
+    {
+        /// <summary>
+        /// Version was detected from an active junction (e.g., C:\php\active).
+        /// </summary>
+        ActiveJunction,
+        /// <summary>
+        /// Version was detected from the first php.exe found on the system PATH.
+        /// </summary>
+        Path
+    }
+
+    /// <summary>
+    /// Holds information about a detected PHP version.
+    /// </summary>
+    /// <param name="Slug">The version slug (e.g., "84").</param>
+    /// <param name="Source">The detection source (ActiveJunction or Path).</param>
+    public record DetectionInfo(string Slug, DetectionSource Source);
+
+    /// <summary>
+    /// Attempts to detect the currently used PHP version slug with details about the source.
+    /// </summary>
+    /// <returns>A DetectionInfo object if a version was detected; otherwise, null.</returns>
+    public static DetectionInfo? GetDetectedVersionInfo()
+    {
+        var active = GetCurrentActiveSlug();
+        if (active != null) return new DetectionInfo(active, DetectionSource.ActiveJunction);
+
+        var onPath = FindAllPhpOnPath();
+        if (onPath.Count == 0) return null;
+
+        var (exePath, version) = onPath[0];
+        var phpRoot = GetPhpRoot();
+
+        // 1. Try to infer from path (e.g. C:\php\php85\php.exe)
+        var dir = Path.GetDirectoryName(exePath);
+        if (dir != null)
+        {
+            var parent = Path.GetDirectoryName(dir);
+            if (parent != null && parent.Equals(phpRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                var folderName = Path.GetFileName(dir);
+                if (folderName != null && folderName.StartsWith("php", StringComparison.OrdinalIgnoreCase))
+                {
+                    var slug = folderName[3..];
+                    if (Regex.IsMatch(slug, @"^\d+$"))
+                    {
+                        return new DetectionInfo(slug, DetectionSource.Path);
+                    }
+                }
+            }
+        }
+
+        // 2. Try to infer from version string (e.g. "8.5.5" -> "85")
+        if (version != null)
+        {
+            var parts = version.Split('.');
+            if (parts.Length >= 2)
+            {
+                var slug = parts[0] + parts[1];
+                if (Directory.Exists(Path.Combine(phpRoot, "php" + slug)))
+                {
+                    return new DetectionInfo(slug, DetectionSource.Path);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Attempts to detect the currently used PHP version slug.
+    /// It first checks for an active junction, then falls back to the first php.exe on PATH
+    /// if it belongs to a managed installation.
+    /// </summary>
+    public static string? GetDetectedSlug() => GetDetectedVersionInfo()?.Slug;
+
+    /// <summary>
     /// Scans the system PATH for php.exe instances.
     /// </summary>
     public static List<(string Path, string? Version)> FindAllPhpOnPath()
@@ -130,13 +210,78 @@ public static partial class PhpVersionHelper
                 FileName = exePath,
                 Arguments = "-v",
                 RedirectStandardOutput = true,
-                UseShellExecute = false
+                UseShellExecute = false,
+                CreateNoWindow = true
             });
             var output = result?.StandardOutput.ReadLine();
             var match = SemanticVersionRegex().Match(output ?? "");
             return match.Success ? match.Groups[1].Value : null;
         }
         catch { return null; }
+    }
+
+    private static readonly Dictionary<string, List<string>> _builtInModulesCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Retrieves the list of built-in PHP modules by running 'php -n -m'.
+    /// </summary>
+    /// <param name="phpDirectory">The directory containing php.exe.</param>
+    /// <returns>A list of module names.</returns>
+    public static List<string> GetBuiltInModules(string phpDirectory)
+    {
+        if (_builtInModulesCache.TryGetValue(phpDirectory, out var cached))
+        {
+            return cached;
+        }
+
+        var exePath = Path.Combine(phpDirectory, "php.exe");
+        if (!File.Exists(exePath)) return new List<string>();
+
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = "-n -m",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            if (process == null) return new List<string>();
+
+            var modules = new List<string>();
+            bool inModules = false;
+            while (!process.StandardOutput.EndOfStream)
+            {
+                var line = process.StandardOutput.ReadLine()?.Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+
+                if (line.Equals("[PHP Modules]", StringComparison.OrdinalIgnoreCase))
+                {
+                    inModules = true;
+                    continue;
+                }
+                if (line.Equals("[Zend Modules]", StringComparison.OrdinalIgnoreCase))
+                {
+                    inModules = false;
+                    continue;
+                }
+
+                if (inModules)
+                {
+                    modules.Add(line);
+                }
+            }
+            process.WaitForExit(5000);
+            _builtInModulesCache[phpDirectory] = modules;
+            return modules;
+        }
+        catch 
+        {
+            _builtInModulesCache[phpDirectory] = new List<string>();
+            return new List<string>(); 
+        }
     }
 
     [GeneratedRegex(@"PHP (\d+\.\d+\.\d+)")]
