@@ -199,7 +199,7 @@ public class PhpIniHelperTests : IDisposable
     }
 
     [Fact]
-    public void GetAvailableExtensions_FindsInPhpIni()
+    public void GetAvailableExtensions_ExcludesMissingInPhpIni()
     {
         var iniPath = Path.Combine(_tempDir, "php.ini");
         File.WriteAllLines(iniPath, new[]
@@ -209,11 +209,13 @@ public class PhpIniHelperTests : IDisposable
             "extension=php_gd2.dll"
         });
 
+        // None of these are built-in or have DLLs in our temp dir, 
+        // so they should NOT be considered available anymore.
         var extensions = PhpIniHelper.GetAvailableExtensions(_tempDir);
 
-        Assert.Contains("mbstring", extensions);
-        Assert.Contains("opcache", extensions);
-        Assert.Contains("gd2", extensions);
+        Assert.DoesNotContain("mbstring", extensions);
+        Assert.DoesNotContain("opcache", extensions);
+        Assert.DoesNotContain("gd2", extensions);
     }
     [Fact]
     public void DisableExtension_CommentsOutAllOccurrences()
@@ -279,5 +281,19 @@ public class PhpIniHelperTests : IDisposable
 
         var lines = File.ReadAllLines(iniPath);
         Assert.Contains("extension_dir = \"ext\"", lines);
+    }
+    [Fact]
+    public void EnableExtension_HandlesQuotedNames()
+    {
+        var iniPath = Path.Combine(_tempDir, "php.ini");
+        File.WriteAllLines(iniPath, new[] { ";extension=\"openssl\"", ";extension = \"php_curl.dll\"" });
+
+        PhpIniHelper.EnableExtension(_tempDir, "openssl");
+        PhpIniHelper.EnableExtension(_tempDir, "curl");
+
+        var lines = File.ReadAllLines(iniPath);
+        Assert.Contains("extension=openssl", lines);
+        Assert.Contains("extension=curl", lines);
+        Assert.DoesNotContain(";extension=\"openssl\"", lines);
     }
 }

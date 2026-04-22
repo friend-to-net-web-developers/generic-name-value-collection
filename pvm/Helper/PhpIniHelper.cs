@@ -87,8 +87,8 @@ public static class PhpIniHelper
         // ;extension=openssl
         // extension=openssl
         // ;zend_extension=xdebug
-        // Also allow spaces around = and ;
-        var pattern = $@"^;?\s*(?<type>zend_extension|extension)\s*=\s*(php_)?{Regex.Escape(extension)}(?:\.dll)?(?:\s*;.*)?\s*$";
+        // Also allow optional quotes and spaces around = and ;
+        var pattern = $@"^;?\s*(?<type>zend_extension|extension)\s*=\s*""?(?:php_)?{Regex.Escape(extension)}(?:\.dll)?""?(?:\s*;.*)?\s*$";
         var regex = new Regex(pattern, RegexOptions.IgnoreCase);
 
         for (int i = 0; i < lines.Count; i++)
@@ -132,7 +132,7 @@ public static class PhpIniHelper
         var lines = File.ReadAllLines(iniPath).ToList();
         var found = false;
         
-        var pattern = $@"^\s*(?<type>zend_extension|extension)\s*=\s*(php_)?{Regex.Escape(extension)}(?:\.dll)?(?:\s*;.*)?\s*$";
+        var pattern = $@"^\s*;?\s*(?<type>zend_extension|extension)\s*=\s*""?(?:php_)?{Regex.Escape(extension)}(?:\.dll)?""?(?:\s*;.*)?\s*$";
         var regex = new Regex(pattern, RegexOptions.IgnoreCase);
 
         for (int i = 0; i < lines.Count; i++)
@@ -177,8 +177,8 @@ public static class PhpIniHelper
         var lines = File.ReadAllLines(iniPath).ToList();
         var changed = false;
 
-        // Match enabled extensions
-        var pattern = @"^\s*(?<type>zend_extension|extension)\s*=\s*(?:php_)?(?<name>[\w\-]+)(?:\.dll)?(?:\s*;.*)?\s*$";
+        // Match enabled extensions, allowing optional quotes
+        var pattern = @"^\s*(?<type>zend_extension|extension)\s*=\s*""?(?:php_)?(?<name>[\w\-]+)(?:\.dll)?""?(?:\s*;.*)?\s*$";
         var regex = new Regex(pattern, RegexOptions.IgnoreCase);
 
         for (int i = 0; i < lines.Count; i++)
@@ -232,23 +232,6 @@ public static class PhpIniHelper
                     name = name[4..]; // remove 'php_'
                 }
                 extensions.Add(name);
-            }
-        }
-
-        // Also check php.ini for any mentioned extensions
-        var iniPath = GetPhpIniPath(phpDirectory);
-        if (iniPath != null)
-        {
-            var lines = File.ReadAllLines(iniPath);
-            var pattern = @"^;?\s*(?:zend_extension|extension)\s*=\s*(?:php_)?(?<name>[\w\-]+)(?:\.dll)?(?:\s*;.*)?\s*$";
-            var regex = new Regex(pattern, RegexOptions.IgnoreCase);
-            foreach (var line in lines)
-            {
-                var match = regex.Match(line);
-                if (match.Success)
-                {
-                    extensions.Add(match.Groups["name"].Value);
-                }
             }
         }
 

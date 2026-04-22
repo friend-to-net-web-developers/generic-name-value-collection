@@ -159,6 +159,13 @@ public class EnableCommand : Command
                                     Console.WriteLine("  'imagick' is a PECL extension and usually needs to be downloaded separately.");
                                     Console.WriteLine("  Download it from: https://pecl.php.net/package/imagick");
                                 }
+                                else if (extension.Equals("tokenizer", StringComparison.OrdinalIgnoreCase) || 
+                                         extension.Equals("xml", StringComparison.OrdinalIgnoreCase) ||
+                                         extension.Equals("ctype", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    Console.WriteLine($"  '{extension}' is usually a core extension. If it's missing, you might be using a minimal PHP build.");
+                                    Console.WriteLine("  Consider downloading a 'Thread Safe' x64 build from https://windows.php.net/download/");
+                                }
                                 else
                                 {
                                     Console.WriteLine("  This extension might need to be downloaded from PECL or another source.");

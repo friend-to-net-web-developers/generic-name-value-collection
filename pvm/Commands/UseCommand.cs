@@ -30,7 +30,11 @@ public class UseCommand : Command
             try
             {
                 JunctionHelper.SetActive(phpRoot, target);
+                
+                // Ensure the configuration is sane
+                PhpIniHelper.EnsureExtensionDir(target);
                 var disabled = PhpIniHelper.CleanupExtensions(target);
+                
                 if (disabled.Count > 0)
                 {
                     Console.ForegroundColor = ConsoleColor.Cyan;

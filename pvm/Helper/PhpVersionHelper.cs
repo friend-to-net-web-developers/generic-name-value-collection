@@ -262,16 +262,38 @@ public static partial class PhpVersionHelper
                 FileName = exePath,
                 Arguments = arguments,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                Environment = { ["PHPRC"] = phpDirectory },
+                WorkingDirectory = phpDirectory
             });
 
             if (process == null) return new List<string>();
 
-            var modules = new List<string>();
-            while (!process.StandardOutput.EndOfStream)
+            var outputTask = process.StandardOutput.ReadToEndAsync();
+            var errorTask = process.StandardError.ReadToEndAsync();
+
+            if (!process.WaitForExit(5000))
             {
-                var line = process.StandardOutput.ReadLine()?.Trim();
+                process.Kill();
+                return new List<string>();
+            }
+
+            var output = outputTask.Result;
+            var error = errorTask.Result;
+
+            var modules = new List<string>();
+            var lines = output.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            
+            if (lines.Count == 0 && !string.IsNullOrWhiteSpace(error))
+            {
+                lines = error.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+            }
+
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
                 if (string.IsNullOrEmpty(line)) continue;
 
                 // Skip headers and warnings
@@ -289,7 +311,7 @@ public static partial class PhpVersionHelper
 
                 modules.Add(line);
             }
-            process.WaitForExit(5000);
+            
             return modules;
         }
         catch 
@@ -316,33 +338,53 @@ public static partial class PhpVersionHelper
             return extList.ToDictionary(e => e, _ => "0");
         }
 
+        var results = new Dictionary<string, string>();
+
+        // Step 1: Use 'php -m' as a baseline. It's the most robust way to get loaded modules.
         try
         {
-            // We use a small script to check each extension. 
-            // We pass them as a comma-separated string to avoid command line length issues with many extensions.
+            var loaded = GetLoadedModules(phpDirectory);
+            if (loaded.Count > 0)
+            {
+                foreach (var ext in extList)
+                {
+                    var normalizedExt = ext.ToLowerInvariant();
+                    bool isLoaded = loaded.Any(m => {
+                        var normalizedM = m.ToLowerInvariant();
+                        if (normalizedM == normalizedExt) return true;
+                        // Handle common aliases/differences
+                        if (normalizedExt == "opcache" && normalizedM.Contains("opcache")) return true;
+                        if (normalizedExt == "xdebug" && normalizedM.Contains("xdebug")) return true;
+                        return false;
+                    });
+                    results[ext] = isLoaded ? "1" : "0";
+                }
+            }
+        }
+        catch { /* Fallback to script */ }
+
+        // Step 2: Use the script to get more accurate data and 'extension_dir'.
+        try
+        {
             var extListForScript = extList.Select(e => e.Replace("'", "\\'")).ToList();
             var extString = string.Join(",", extListForScript);
-            
-            // PHP script: 
-            // $a=explode(',', $argv[1]); $r=[]; foreach($a as $e) $r[$e]=extension_loaded($e)?'1':'0'; 
-            // $r['__ext_dir']=ini_get('extension_dir'); echo 'JSON:'.json_encode($r);
-            // We use a prefix 'JSON:' to easily find the result even if there are warnings.
             var script = "$a=explode(',', $argv[1]); $r=[]; foreach($a as $e) $r[$e]=extension_loaded($e)?'1':'0'; $r['__ext_dir']=ini_get('extension_dir'); echo 'JSON:'.json_encode($r);";
             
             using var process = Process.Start(new ProcessStartInfo
             {
                 FileName = exePath,
-                // We add -d display_errors=off to avoid polluting the output with warnings.
-                // We also set PHPRC to the directory of php.exe to ensure it picks up the correct php.ini.
-                Arguments = $"-d display_errors=off -d display_startup_errors=off -r \"{script}\" -- \"{extString}\"",
+                // We don't use -d display_errors=off here because we want to see errors if it fails,
+                // and our JSON parsing logic is robust enough to handle the extra output.
+                Arguments = $"-r \"{script}\" -- \"{extString}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                Environment = { ["PHPRC"] = phpDirectory }
+                Environment = { ["PHPRC"] = phpDirectory },
+                WorkingDirectory = phpDirectory
             });
 
-            if (process == null) return extList.ToDictionary(e => e, _ => "0");
+            if (process == null) return results;
 
             var outputTask = process.StandardOutput.ReadToEndAsync();
             var errorTask = process.StandardError.ReadToEndAsync();
@@ -350,46 +392,49 @@ public static partial class PhpVersionHelper
             if (!process.WaitForExit(5000))
             {
                 process.Kill();
-                return extList.ToDictionary(e => e, _ => "0");
+                if (results.Count == 0) results["__error"] = "PHP check timed out after 5 seconds.";
+                return results;
             }
 
             var output = outputTask.Result;
             var error = errorTask.Result;
 
-            if (string.IsNullOrWhiteSpace(output))
-            {
-                // If output is empty, it might be a fatal error during startup.
-                // We can't do much but return failure for all.
-                return extList.ToDictionary(e => e, _ => "0");
-            }
-
-            // Try to find the JSON part in the output. It should start after 'JSON:'.
+            // Try to find the JSON part in the output.
+            var searchIn = output;
             var jsonPrefix = "JSON:";
             var index = output.IndexOf(jsonPrefix);
             if (index != -1)
             {
-                output = output.Substring(index + jsonPrefix.Length);
-            }
-            else
-            {
-                // Fallback to searching for braces if prefix is missing
-                var firstBrace = output.IndexOf('{');
-                var lastBrace = output.LastIndexOf('}');
-                if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace)
-                {
-                    output = output.Substring(firstBrace, lastBrace - firstBrace + 1);
-                }
-                else
-                {
-                    return extList.ToDictionary(e => e, _ => "0");
-                }
+                searchIn = output.Substring(index + jsonPrefix.Length);
             }
 
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(output) ?? extList.ToDictionary(e => e, _ => "0");
+            var firstBrace = searchIn.IndexOf('{');
+            var lastBrace = searchIn.LastIndexOf('}');
+            if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace)
+            {
+                var json = searchIn.Substring(firstBrace, lastBrace - firstBrace + 1);
+                var scriptResults = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                if (scriptResults != null)
+                {
+                    // Merge/Override with script results as they are more accurate
+                    foreach (var entry in scriptResults)
+                    {
+                        results[entry.Key] = entry.Value;
+                    }
+                    return results;
+                }
+            }
+            
+            if (results.Count == 0 && !string.IsNullOrWhiteSpace(error))
+            {
+                results["__error"] = error.Trim();
+            }
         }
-        catch
+        catch (Exception ex)
         {
-            return extList.ToDictionary(e => e, _ => "0");
+            if (results.Count == 0) results["__error"] = ex.Message;
         }
+
+        return results;
     }
 }

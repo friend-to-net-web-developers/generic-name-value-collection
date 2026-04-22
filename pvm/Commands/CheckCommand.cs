@@ -127,9 +127,25 @@ public class CheckCommand : Command
                 // This verifies that the extension is not only configured but successfully initialized by the engine.
                 var checkResults = PhpVersionHelper.CheckExtensionsViaPhp(target, extensionList);
                 
-                if (checkResults.Count == 0 && extensionList.Count > 0)
+                var hasResults = checkResults.Any(r => r.Key != "__error" && r.Key != "__ext_dir");
+                if (!hasResults && extensionList.Count > 0)
                 {
                     AnsiConsole.MarkupLine($"[red][[ERROR]] Failed to run PHP check for version {versionDisplay}.[/]");
+                    AnsiConsole.MarkupLine($"      [yellow]This usually indicates that PHP crashed on startup or has a fatal error in php.ini.[/]");
+                    
+                    if (checkResults.TryGetValue("__error", out var errorDetail))
+                    {
+                        AnsiConsole.MarkupLine($"      [red]Error detail: {errorDetail}[/]");
+                    }
+
+                    // Try to run php -v as a diagnostic
+                    var activeExe = Path.Combine(target, "php.exe");
+                    var reported = PhpVersionHelper.GetVersionFromExe(activeExe);
+                    if (reported == null)
+                    {
+                        AnsiConsole.MarkupLine($"      [red]Diagnostic: 'php -v' also failed. Your PHP installation at {target} might be broken.[/]");
+                    }
+                    
                     allSucceeded = false;
                     continue;
                 }
@@ -137,7 +153,7 @@ public class CheckCommand : Command
                 foreach (var entry in checkResults)
                 {
                     var ext = entry.Key;
-                    if (ext == "__ext_dir") continue;
+                    if (ext == "__ext_dir" || ext == "__error") continue;
                     
                     bool isLoaded = entry.Value == "1";
                     
@@ -149,6 +165,13 @@ public class CheckCommand : Command
                     {
                         AnsiConsole.MarkupLine($"[red][[FAIL]] {ext} is NOT enabled for PHP {versionDisplay}[/]");
                         allSucceeded = false;
+                        
+                        // Diagnostic: Check if it's supposed to be built-in
+                        var builtIn = PhpVersionHelper.GetBuiltInModules(target);
+                        if (builtIn.Contains(ext, StringComparer.OrdinalIgnoreCase))
+                        {
+                            AnsiConsole.MarkupLine($"      [yellow]Note: {ext} is a built-in module but PHP engine says it's not loaded. This usually indicates a broken PHP installation or a conflict in php.ini.[/]");
+                        }
                     }
                 }
 
